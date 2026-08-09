@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: product_db,inventory_db,cart_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
+      - postgres_data:/var/lib/postgresql/data
+
+  product-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+      args:
+        SERVICE_NAME: product-service
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: product_db
+      GRPC_PORT: 50051
+    ports:
+      - "50051:50051"
+    depends_on:
+      - postgres
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+      args:
+        SERVICE_NAME: inventory-service
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: inventory_db
+      PRODUCT_SERVICE_ADDR: product-service:50051
+      GRPC_PORT: 50052
+    ports:
+      - "50052:50052"
+    depends_on:
+      - postgres
+      - product-service
+
+  cart-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+      args:
+        SERVICE_NAME: cart-service
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: cart_db
+      PRODUCT_SERVICE_ADDR: product-service:50051
+      INVENTORY_SERVICE_ADDR: inventory-service:50052
+      GRPC_PORT: 50053
+    ports:
+      - "50053:50053"
+    depends_on:
+      - postgres
+      - product-service
+      - inventory-service
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PRODUCT_SERVICE_URL: product-service:50051
+      INVENTORY_SERVICE_URL: inventory-service:50052
+      CART_SERVICE_URL: cart-service:50053
+    depends_on:
+      - product-service
+      - inventory-service
+      - cart-service
+
+volumes:
+  postgres_data:
