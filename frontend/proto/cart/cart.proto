@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package cart;
+
+option go_package = "github.com/services/proto/cart";
+
+import "product/product.proto";
+
+// CartItem message
+message CartItem {
+  string id = 1;
+  string cart_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+  double unit_price = 5;
+  product.Product product = 6;
+}
+
+// Cart message
+message Cart {
+  string id = 1;
+  string user_id = 2;
+  repeated CartItem items = 3;
+  double total_price = 4;
+  string status = 5; // "active", "checked_out", "abandoned"
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+// Request / Response messages
+message GetCartRequest {
+  string user_id = 1;
+}
+
+message GetCartResponse {
+  Cart cart = 1;
+}
+
+message AddToCartRequest {
+  string user_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+}
+
+message AddToCartResponse {
+  Cart cart = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message RemoveFromCartRequest {
+  string user_id = 1;
+  string product_id = 2;
+}
+
+message RemoveFromCartResponse {
+  Cart cart = 1;
+  bool success = 2;
+}
+
+message UpdateCartItemRequest {
+  string user_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+}
+
+message UpdateCartItemResponse {
+  Cart cart = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message CheckoutRequest {
+  string user_id = 1;
+}
+
+message CheckoutResponse {
+  bool success = 1;
+  string order_id = 2;
+  string message = 3;
+  double total_price = 4;
+}
+
+message ClearCartRequest {
+  string user_id = 1;
+}
+
+message ClearCartResponse {
+  bool success = 1;
+}
+
+// Cart Service
+service CartService {
+  rpc GetCart(GetCartRequest) returns (GetCartResponse);
+  rpc AddToCart(AddToCartRequest) returns (AddToCartResponse);
+  rpc RemoveFromCart(RemoveFromCartRequest) returns (RemoveFromCartResponse);
+  rpc UpdateCartItem(UpdateCartItemRequest) returns (UpdateCartItemResponse);
+  rpc Checkout(CheckoutRequest) returns (CheckoutResponse);
+  rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
+}
